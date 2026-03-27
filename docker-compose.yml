@@ -2,36 +2,52 @@ services:
   server:
     build: ./server
     ports:
-      -"8080:8080"
+      - "50051:50051"
     volumes:
       - ./server:/app
     restart: always
     depends_on:
       - postgres
+    networks:
+      - grpc_network
+
   client:
     build: ./client
-    ports:
-      -"8080:8080"
+    environment:
+      GRPC_TARGET: server:50051
     volumes:
       - ./client:/app
     restart: always
     depends_on:
-      - postgres
+      - server
+    networks:
+      - grpc_network
+
   postgres:
-      image: postgres:15-alpine
-      container_name: grpc_db
-      environment:
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: postgres
-        POSTGRES_DB: grpc_db
-      ports:
-        - "5432:5432"
-      volumes:
-        - postgres_data:/var/lib/postgresql/data
-      healthcheck:
-        test: ["CMD-SHELL", "pg_isready -U postgres"]
-        interval: 10s
-        timeout: 5s
-        retries: 5
-      restart: unless-stopped
+    image: postgres:15-alpine
+    container_name: grpc_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: grpc_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - grpc_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  grpc_network:
+    driver: bridge
   
