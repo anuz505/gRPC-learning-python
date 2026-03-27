@@ -1,0 +1,2 @@
+# This is the code generating command for the users.proto file. Run this command in the terminal to generate the necessary Python files for gRPC.
+python -m grpc_tools.protoc -I../server/protos --python_out=. --grpc_python_out=. --pyi_out=. ../server/protos/users.proto
