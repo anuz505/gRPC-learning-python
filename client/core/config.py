@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     debug: bool = True
     log_level: str = "INFO"
     port: int = 8000
+    host: str = "127.0.0.1"
     description: str = "App description here.."
 
     model_config = SettingsConfigDict(
@@ -26,6 +27,17 @@ class Settings(BaseSettings):
     postgres_port: int = Field(default=5432, description="PostgreSQL port")
     postgres_db: str = Field(default="Boilerplate",
                              description="PostgreSQL database name")
+
+    # JWT and auth settings
+    access_token_expires_minutes: int = Field(
+        default=15, description="Access token expiry in minutes"
+    )
+    refresh_token_expires_days: int = Field(
+        default=7, description="Refresh token expiry in days"
+    )
+    cookie_secure: bool = Field(default=False, description="Set secure cookies")
+    jwt_secret: str = Field(default="change-me-in-production", description="jwt_secret")
+    jwt_algorithm: str = Field(default="HS256", description="jwt algorithm")
 
     @property
     def db_url(self) -> str:

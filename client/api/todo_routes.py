@@ -7,6 +7,7 @@ from schema import TodoCreate, TodoResponse, TodoUpdate
 from services import TodoService
 from uuid import UUID
 from core import LoggerSetup
+from dependencies import get_current_user
 
 logger = LoggerSetup.setup_logger(__name__)
 todo_router = APIRouter(prefix="/todo", tags=["todos"])
@@ -18,30 +19,50 @@ def get_service(db: Session = Depends(get_db)) -> TodoService:
 
 
 @todo_router.get("/", response_model=List[TodoResponse])
-async def get_all_todos(service: TodoService = Depends(get_service)):
+async def get_all_todos(
+    service: TodoService = Depends(get_service),
+    user_id: str = Depends(get_current_user),
+):
     logger.info("gettings all todos")
-    return service.get_all()
+    return service.get_all(user_id)
 
 
 @todo_router.get("/{id}")
-async def get_todo_detail(id: UUID, service: TodoService = Depends(get_service)):
+async def get_todo_detail(
+    id: UUID,
+    service: TodoService = Depends(get_service),
+    user_id: str = Depends(get_current_user),
+):
     logger.info(f"getting todo {id}")
-    return service.get_or_404(id)
+    return service.get_or_404(id, user_id)
 
 
 @todo_router.post("/", response_model=TodoResponse, status_code=status.HTTP_201_CREATED)
-async def create_todo(data: TodoCreate, service: TodoService = Depends(get_service)):
+async def create_todo(
+    data: TodoCreate,
+    service: TodoService = Depends(get_service),
+    user_id: str = Depends(get_current_user),
+):
     logger.info("creating todo")
-    return service.create(data)
+    return service.create(data, user_id)
 
 
 @todo_router.put("/{id}", response_model=TodoResponse, status_code=status.HTTP_200_OK)
-async def update_todo(id: UUID, data: TodoUpdate, service: TodoService = Depends(get_service)):
+async def update_todo(
+    id: UUID,
+    data: TodoUpdate,
+    service: TodoService = Depends(get_service),
+    user_id: str = Depends(get_current_user),
+):
     logger.info("updating todo")
-    return service.update(id, data)
+    return service.update(id, data, user_id)
 
 
 @todo_router.delete("/{id}")
-async def delete_todo(id: UUID, service: TodoService = Depends(get_service)):
+async def delete_todo(
+    id: UUID,
+    service: TodoService = Depends(get_service),
+    user_id: str = Depends(get_current_user),
+):
     logger.info("deleting todo")
-    return service.delete(id)
+    return service.delete(id, user_id)

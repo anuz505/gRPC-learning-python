@@ -10,16 +10,18 @@ class TodoRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_all(self) -> List[TodoResponse]:
-        result = self.db.execute(select(Todo))
+    def get_all(self, user_id: str) -> List[TodoResponse]:
+        result = self.db.execute(select(Todo).where(Todo.user_id == user_id))
         return result.scalars().all()
 
-    def get_by_id(self, id: UUID):
-        result = self.db.execute(select(Todo).where(Todo.id == id))
+    def get_by_id(self, id: UUID, user_id: str):
+        result = self.db.execute(select(Todo).where(Todo.id == id, Todo.user_id == user_id))
         return result.scalar_one_or_none()
 
-    def create(self, data: TodoCreate) -> TodoResponse:
-        todo = Todo(**data.model_dump())
+    def create(self, data: TodoCreate, user_id: str) -> TodoResponse:
+        payload = data.model_dump()
+        payload["user_id"] = user_id
+        todo = Todo(**payload)
         self.db.add(todo)
         self.db.commit()
         self.db.refresh(todo)

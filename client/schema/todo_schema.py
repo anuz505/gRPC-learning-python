@@ -11,6 +11,7 @@ class TodoCreate(BaseModel):
 
 class TodoResponse(BaseModel):
     id: uuid.UUID
+    user_id: str
     title: str
     description: str
     created_at: datetime

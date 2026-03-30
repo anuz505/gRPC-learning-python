@@ -5,6 +5,7 @@ from sqlalchemy.dialects.postgresql import UUID
 
 from db.auth_models import User
 from schema import UserResponse, UserSignUp, UserUpdate
+from utils.auth_utils import get_password_hash
 
 
 class AuthRepository:
@@ -23,12 +24,18 @@ class AuthRepository:
         result = self.db.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
 
+    def get_user_by_username(self, username: str) -> UserResponse:
+        result = self.db.execute(select(User).where(User.username == username))
+        return result.scalar_one_or_none()
+
     def create_user(self, data: UserSignUp) -> UserResponse:
         existing_user = self.get_user_by_email(data.email)
         if existing_user:
             raise ValueError("User with this email already exists")
 
-        user = User(**data.model_dump())
+        payload = data.model_dump()
+        payload["password"] = get_password_hash(payload["password"])
+        user = User(**payload)
         self.db.add(user)
         self.db.commit()
         self.db.refresh(user)

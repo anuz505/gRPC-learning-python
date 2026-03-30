@@ -8,3 +8,4 @@ pydantic
 pydantic-settings
 fastapi[standard]
 passlib[argon2]
+python-jose[cryptography]

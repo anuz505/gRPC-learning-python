@@ -1,2 +1,3 @@
 from .todo_repo import TodoRepository
-__all__ = ["TodoRepository"]
+from .auth_repo import AuthRepository
+__all__ = ["TodoRepository", "AuthRepository"]

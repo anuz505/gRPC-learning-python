@@ -36,5 +36,15 @@ class Settings(BaseSettings):
             )
         )
 
+    access_token_expires_minutes: int = Field(
+        default=15, description="Access token expiry in minutes"
+    )
+    refresh_token_expires_days: int = Field(
+        default=7, description="Refresh token expiry in days"
+    )
+    cookie_secure: bool = Field(default=False, description="Set secure cookies")
+    jwt_secret: str = Field(default="change-me-in-production", description="jwt_secret")
+    jwt_algorithm: str = Field(default="HS256", description="jwt algorithm")
+
 
 settings = Settings()

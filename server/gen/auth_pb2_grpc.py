@@ -3,7 +3,10 @@
 import grpc
 import warnings
 
-import auth_pb2 as auth__pb2
+try:
+    from gen import auth_pb2 as auth__pb2
+except ModuleNotFoundError:
+    from . import auth_pb2 as auth__pb2
 
 GRPC_GENERATED_VERSION = '1.78.0'
 GRPC_VERSION = grpc.__version__
