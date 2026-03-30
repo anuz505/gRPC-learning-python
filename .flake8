@@ -1,0 +1,4 @@
+[flake8]
+max_length = 88
+extend-ignore =  E501
+exclude = myvenv

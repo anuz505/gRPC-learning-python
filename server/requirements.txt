@@ -1,3 +1,10 @@
 grpcio
 grpcio-tools
 protobuf
+sqlalchemy
+psycopg2-binary
+python-dotenv
+pydantic
+pydantic-settings
+fastapi[standard]
+passlib[argon2]

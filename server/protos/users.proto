@@ -3,63 +3,63 @@ syntax = "proto3";
 package users;
 
 service UserService {
-    rpc SayHelloUser (HelloRequest) returns (HelloReply){}
-    rpc GetUsers(GetUsersRequest) returns (GetUsersResponse){}
-    rpc GetUserById(GetUserByIdRequest) returns (GetUserByIdResponse){}
-    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse){}
-    rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse){}
-    rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse){}
+  rpc SayHelloUser(SayHelloUserRequest) returns (SayHelloUserResponse) {}
+  rpc GetUsers(GetUsersRequest) returns (GetUsersResponse) {}
+  rpc GetUserById(GetUserByIdRequest) returns (GetUserByIdResponse) {}
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {}
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {}
 }
 
 message User {
-    string id = 1;
-    string name = 2;
-    string username = 3;
-    string email = 4;
-    string password = 5;
+  string id = 1;
+  string name = 2;
+  string username = 3;
+  string email = 4;
+  string password = 5;
 }
-message HelloRequest {
-    string username = 1;
-    string email = 2;
-}
-
-message HelloReply {
-    string message = 1;
+message SayHelloUserRequest {
+  string username = 1;
+  string email = 2;
 }
 
-message GetUsersRequest{}
-message GetUsersResponse{
-    repeated User users = 1;
+message SayHelloUserResponse {
+  string message = 1;
 }
 
-message GetUserByIdRequest{
-    string id = 1;
+message GetUsersRequest {}
+message GetUsersResponse {
+  repeated User users = 1;
 }
 
-message GetUserByIdResponse{
-    User user = 1;
+message GetUserByIdRequest {
+  string id = 1;
 }
 
-message CreateUserRequest{
-    User user = 1;
+message GetUserByIdResponse {
+  User user = 1;
 }
 
-message CreateUserResponse{
-    User user = 1;
+message CreateUserRequest {
+  User user = 1;
 }
 
-message UpdateUserRequest{
-    User user = 1;
+message CreateUserResponse {
+  User user = 1;
 }
 
-message UpdateUserResponse{
-    User user = 1;
+message UpdateUserRequest {
+  User user = 1;
 }
 
-message DeleteUserRequest{
-    string id = 1;
+message UpdateUserResponse {
+  User user = 1;
 }
 
-message DeleteUserResponse{
-    User user = 1;   
+message DeleteUserRequest {
+  string id = 1;
+}
+
+message DeleteUserResponse {
+  User user = 1;
 }

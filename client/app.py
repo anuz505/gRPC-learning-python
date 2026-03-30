@@ -12,7 +12,7 @@ def run():
         grpc.channel_ready_future(channel).result(timeout=10)
         stub = users_pb2_grpc.UserServiceStub(channel)
         response = stub.SayHelloUser(
-            users_pb2.HelloRequest(
+            users_pb2.SayHelloUserRequest(
                 username="anuz505",
                 email="anuz505@gmail.com"
             )
@@ -20,7 +20,8 @@ def run():
         print("Client received: " + response.message)
 
         all_users_response = stub.GetUsers(users_pb2.GetUsersRequest())
-        print(all_users_response)
+        for user in all_users_response.users:
+            print(user.id, user.username, user.email)
 
 
 if __name__ == "__main__":

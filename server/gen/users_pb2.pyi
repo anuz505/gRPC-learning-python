@@ -20,7 +20,7 @@ class User(_message.Message):
     password: str
     def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., username: _Optional[str] = ..., email: _Optional[str] = ..., password: _Optional[str] = ...) -> None: ...
 
-class HelloRequest(_message.Message):
+class SayHelloUserRequest(_message.Message):
     __slots__ = ("username", "email")
     USERNAME_FIELD_NUMBER: _ClassVar[int]
     EMAIL_FIELD_NUMBER: _ClassVar[int]
@@ -28,7 +28,7 @@ class HelloRequest(_message.Message):
     email: str
     def __init__(self, username: _Optional[str] = ..., email: _Optional[str] = ...) -> None: ...
 
-class HelloReply(_message.Message):
+class SayHelloUserResponse(_message.Message):
     __slots__ = ("message",)
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     message: str

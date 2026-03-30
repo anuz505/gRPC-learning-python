@@ -36,8 +36,8 @@ class UserServiceStub(object):
         """
         self.SayHelloUser = channel.unary_unary(
                 '/users.UserService/SayHelloUser',
-                request_serializer=users__pb2.HelloRequest.SerializeToString,
-                response_deserializer=users__pb2.HelloReply.FromString,
+                request_serializer=users__pb2.SayHelloUserRequest.SerializeToString,
+                response_deserializer=users__pb2.SayHelloUserResponse.FromString,
                 _registered_method=True)
         self.GetUsers = channel.unary_unary(
                 '/users.UserService/GetUsers',
@@ -110,8 +110,8 @@ def add_UserServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'SayHelloUser': grpc.unary_unary_rpc_method_handler(
                     servicer.SayHelloUser,
-                    request_deserializer=users__pb2.HelloRequest.FromString,
-                    response_serializer=users__pb2.HelloReply.SerializeToString,
+                    request_deserializer=users__pb2.SayHelloUserRequest.FromString,
+                    response_serializer=users__pb2.SayHelloUserResponse.SerializeToString,
             ),
             'GetUsers': grpc.unary_unary_rpc_method_handler(
                     servicer.GetUsers,
@@ -164,8 +164,8 @@ class UserService(object):
             request,
             target,
             '/users.UserService/SayHelloUser',
-            users__pb2.HelloRequest.SerializeToString,
-            users__pb2.HelloReply.FromString,
+            users__pb2.SayHelloUserRequest.SerializeToString,
+            users__pb2.SayHelloUserResponse.FromString,
             options,
             channel_credentials,
             insecure,
