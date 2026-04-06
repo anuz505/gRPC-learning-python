@@ -2,11 +2,52 @@ syntax = "proto3";
 
 package auth;
 
-
 service AuthService {
+    // User registration
+    rpc Register (RegisterRequest) returns (RegisterResponse);
+
+    // User login - returns access and refresh tokens
+    rpc Login (LoginRequest) returns (LoginResponse);
+
+    // Verify JWT token - returns user_id if valid
     rpc VerifyToken (VerifyTokenRequest) returns (VerifyTokenResponse);
+
+    // Refresh access token using refresh token
+    rpc RefreshToken (RefreshTokenRequest) returns (RefreshTokenResponse);
 }
 
+// ============= Register =============
+message RegisterRequest {
+    string username = 1;
+    string email = 2;
+    string password = 3;
+}
+
+message RegisterResponse {
+    bool success = 1;
+    string user_id = 2;
+    string message = 3;
+    string error = 4;
+}
+
+// ============= Login =============
+message LoginRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message LoginResponse {
+    bool success = 1;
+    string user_id = 2;
+    string access_token = 3;
+    string refresh_token = 4;
+    string token_type = 5;     // "Bearer"
+    int32 expires_in = 6;      // seconds
+    string message = 7;
+    string error = 8;
+}
+
+// ============= VerifyToken =============
 message VerifyTokenRequest {
     string token = 1;
 }
@@ -15,4 +56,17 @@ message VerifyTokenResponse {
     bool is_valid = 1;
     string user_id = 2;
     string error_message = 3;
+}
+
+// ============= RefreshToken =============
+message RefreshTokenRequest {
+    string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+    bool success = 1;
+    string access_token = 2;
+    string user_id = 3;
+    int32 expires_in = 4;      // seconds
+    string error = 5;
 }

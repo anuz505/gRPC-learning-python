@@ -19,7 +19,7 @@ class Settings(BaseSettings):
 
     # db settings
     postgres_user: str = Field(default="postgres", description="postgres user")
-    postgres_password: str = Field(default="root",
+    postgres_password: str = Field(default="postgres",
                                    description="postgres password")
     postgres_host: str = Field(default="localhost",
                                description="PostgreSQL host")

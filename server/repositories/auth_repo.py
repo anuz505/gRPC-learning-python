@@ -1,62 +1,64 @@
-from typing import List
+"""Repository layer for User database access. Auth service owns user table."""
+
+from typing import Optional
+from uuid import UUID as PythonUUID
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import UUID
-
 from db.auth_models import User
-from schema import UserResponse, UserSignUp, UserUpdate
-from utils.auth_utils import get_password_hash
 
 
 class AuthRepository:
+    """Data access layer for User table."""
+
     def __init__(self, db: Session):
         self.db = db
 
-    def get_all_users(self) -> List[UserResponse]:
-        result = self.db.execute(select(User))
-        return result.scalars().all()
-
-    def get_by_id(self, id: UUID) -> UserResponse:
-        result = self.db.execute(select(User).where(User.id == id))
-        return result.scalar_one_or_none()
-
-    def get_user_by_email(self, email: str) -> UserResponse:
+    def get_user_by_email(self, email: str) -> Optional[User]:
+        """Get user by email."""
         result = self.db.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
 
-    def get_user_by_username(self, username: str) -> UserResponse:
+    def get_user_by_username(self, username: str) -> Optional[User]:
+        """Get user by username."""
         result = self.db.execute(select(User).where(User.username == username))
         return result.scalar_one_or_none()
 
-    def create_user(self, data: UserSignUp) -> UserResponse:
-        existing_user = self.get_user_by_email(data.email)
-        if existing_user:
-            raise ValueError("User with this email already exists")
+    def get_user_by_id(self, user_id: PythonUUID) -> Optional[User]:
+        """Get user by ID."""
+        result = self.db.execute(select(User).where(User.id == user_id))
+        return result.scalar_one_or_none()
 
-        payload = data.model_dump()
-        payload["password"] = get_password_hash(payload["password"])
-        user = User(**payload)
+    def create_user(
+        self,
+        username: str,
+        email: str,
+        password_hash: str,
+    ) -> User:
+        """
+        Create a new user.
+        
+        Args:
+            username: Username
+            email: Email address
+            password_hash: Hashed password
+            
+        Returns:
+            Created User object
+        """
+        user = User(
+            username=username,
+            email=email,
+            password=password_hash,
+        )
         self.db.add(user)
         self.db.commit()
         self.db.refresh(user)
         return user
 
-    def update_user(self, data: UserUpdate, id: UUID) -> UserResponse:
-        user = self.get_by_id(id)
-        if not user:
-            raise ValueError("The user does not exist")
-
-        update_data = data.model_dump(exclude_unset=True)
-        new_email = update_data.get("email")
-
-        if new_email and new_email != user.email:
-            existing_user = self.get_user_by_email(new_email)
-            if existing_user:
-                raise ValueError("User with this email already exists")
-
-        for field, value in update_data.items():
-            setattr(user, field, value)
-
-        self.db.commit()
-        self.db.refresh(user)
-        return user
+    def user_exists(self, email: str = None, username: str = None) -> bool:
+        """Check if user exists by email or username."""
+        if email:
+            return self.get_user_by_email(email) is not None
+        if username:
+            return self.get_user_by_username(username) is not None
+        return False

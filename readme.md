@@ -1,53 +1,448 @@
-# gRPC + FastAPI Learning Project 🚀
+# gRPC + FastAPI Microservices Architecture 🚀
 
-A production-ready example of **gRPC** + **FastAPI** microservices architecture with JWT authentication, PostgreSQL database, and user-scoped data management.
+A **production-ready** example of microservices architecture with:
+- **Auth Service**: Independent gRPC microservice for all authentication
+- **FastAPI Service**: HTTP API Gateway that delegates auth to Auth Service
+- **PostgreSQL**: Separate databases for Auth and FastAPI services
+- **JWT Tokens**: Secure authentication with access + refresh tokens
+- **Argon2 Hashing**: State-of-the-art password security
 
 ## 📋 Architecture Overview
 
 ```
-┌─────────────────────────────────────┐
-│  FastAPI Client (HTTP)              │
-│  Port: 8000                         │
-├─────────────────────────────────────┤
-│  Routes:                            │
-│  • POST /auth/           → Create   │
-│  • POST /auth/login      → Token    │
-│  • POST /auth/refresh    → Refresh  │
-│  • POST /auth/logout     → Logout   │
-│  • POST /todo/           → Create   │
-│  • GET  /todo/           → List     │
-│  • PUT  /todo/{id}       → Update   │
-│  • DELETE /todo/{id}     → Delete   │
-│                                     │
-│  All /todo/* require:               │
-│  Authorization: Bearer <JWT>        │
-└─────────────────────────────────────┘
-            ↑
-            │ gRPC Call
-            │ (VerifyToken)
-            ↓
-┌─────────────────────────────────────┐
-│  gRPC Auth Server                   │
-│  Port: 5501                         │
-├─────────────────────────────────────┤
-│  RPC Service:                       │
-│  • VerifyToken(token) → user_id     │
-│                                     │
-│  JWT Validation:                    │
-│  • Decodes JWT with secret          │
-│  • Validates expiry                 │
-│  • Extracts user_id (sub claim)     │
-└─────────────────────────────────────┘
-            ↑
-            │ Query
-            ↓
-┌─────────────────────────────────────┐
-│  PostgreSQL Database                │
-├─────────────────────────────────────┤
-│  Tables:                            │
-│  • users (id, username, email, pw)  │
-│  • todo (id, user_id, title, desc)  │
-└─────────────────────────────────────┘
+┌───────────────────────┐
+│   HTTP Client         │
+│  (Browser / cURL)     │
+└──────────┬────────────┘
+           │ HTTP
+           ▼
+┌─────────────────────────────────────────────────────┐
+│         FastAPI Service (HTTP API Gateway)          │
+│              Port: 8000                             │
+├─────────────────────────────────────────────────────┤
+│ • POST   /auth/register      (delegates to Auth)   │
+│ • POST   /auth/login         (delegates to Auth)   │
+│ • POST   /auth/refresh       (delegates to Auth)   │
+│ • GET    /todo/              (protected route)     │
+│ • POST   /todo/              (protected route)     │
+│ • PUT    /todo/{id}          (protected route)     │
+│ • DELETE /todo/{id}          (protected route)     │
+│                                                    │
+│ DB: PostgreSQL (todos table only)                  │
+└────────────────┬─────────────────────────────────────┘
+                 │ gRPC
+                 ▼
+┌─────────────────────────────────────────────────────┐
+│    gRPC Auth Service (Microservice)                 │
+│         Port: 5501                                  │
+├─────────────────────────────────────────────────────┤
+│ • Register(username, email, password)              │
+│ • Login(email, password) → access + refresh tokens │
+│ • VerifyToken(token) → user_id                     │
+│ • RefreshToken(refresh_token) → new access token  │
+│                                                    │
+│ Owns: All auth logic, JWT tokens, passwords       │
+│ DB: PostgreSQL (users table only)                  │
+└─────────────────────────────────────────────────────┘
+```
+
+## 🎯 Key Principles
+
+### 1. **Separation of Concerns**
+- Auth Service = authentication only
+- FastAPI Service = business logic (todos) only
+- No auth logic in FastAPI
+
+### 2. **Single Source of Truth**
+- Auth Service is **the only** place that:
+  - Knows the JWT secret
+  - Hashes passwords
+  - Generates/validates tokens
+  - Manages users
+
+### 3. **Inter-Service Communication**
+- gRPC for service-to-service (fast, typed, binary)
+- HTTP REST for client-to-API (standard, easy)
+
+### 4. **Database Per Service**
+- Auth Service: `users` table
+- FastAPI Service: `todos` table
+- No cross-service database queries
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.10+
+- PostgreSQL 14+
+- 2 databases: `auth_service` and `fastapi_service`
+
+### 1. Setup Environment
+
+```bash
+# Auth Service
+cd server/
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# FastAPI Service (new terminal)
+cd client/
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 2. Create Databases
+
+```bash
+psql -c "CREATE DATABASE auth_service;"
+psql -c "CREATE DATABASE fastapi_service;"
+```
+
+### 3. Configure Environment
+
+**server/.env**
+```
+POSTGRES_DB=auth_service
+JWT_SECRET=change-me-in-production
+```
+
+**client/.env**
+```
+POSTGRES_DB=fastapi_service
+JWT_SECRET=change-me-in-production
+AUTH_SERVICE_HOST=localhost
+AUTH_SERVICE_PORT=5501
+```
+
+### 4. Start Services
+
+**Terminal 1: Auth Service**
+```bash
+cd server/
+python main.py
+# Output: Auth Service gRPC server listening on port 5501
+```
+
+**Terminal 2: FastAPI Service**
+```bash
+cd client/
+python main.py
+# Output: Uvicorn running on http://0.0.0.0:8000
+```
+
+### 5. Test the API
+
+**Register:**
+```bash
+curl -X POST http://localhost:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john",
+    "email": "john@example.com",
+    "password": "SecurePassword123"
+  }'
+```
+
+**Login:**
+```bash
+curl -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john@example.com",
+    "password": "SecurePassword123"
+  }'
+```
+
+**Create Todo (use access_token from login):**
+```bash
+curl -X POST http://localhost:8000/todo/ \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Learn gRPC",
+    "description": "Master microservices"
+  }'
+```
+
+**Get Todos:**
+```bash
+curl -X GET http://localhost:8000/todo/ \
+  -H "Authorization: Bearer <access_token>"
+```
+
+## 📁 Project Structure
+
+```
+python-grpc-learning/
+├── server/                          # Auth Service (gRPC)
+│   ├── main.py                      # gRPC server entry point
+│   ├── protos/
+│   │   └── auth.proto               # gRPC service definitions
+│   ├── services/
+│   │   └── auth_service.py          # Business logic
+│   ├── repositories/
+│   │   └── auth_repo.py             # Database access
+│   ├── db/
+│   │   ├── db_models.py             # SQLAlchemy setup
+│   │   └── auth_models.py           # User model
+│   ├── utils/
+│   │   ├── jwt_utils.py             # JWT handling
+│   │   └── password_utils.py        # Password hashing
+│   ├── core/
+│   │   └── config.py                # Configuration
+│   ├── gen/                         # Generated protobuf files
+│   └── requirements.txt
+│
+├── client/                          # FastAPI Service (HTTP)
+│   ├── main.py                      # FastAPI app entry point
+│   ├── api/
+│   │   ├── auth_routes.py           # Auth HTTP endpoints
+│   │   └── todo_routes.py           # Todo HTTP endpoints
+│   ├── services/
+│   │   ├── auth_grpc_client.py      # gRPC Auth client
+│   │   └── todo_service.py          # Todo business logic
+│   ├── repositories/
+│   │   └── todo_repo.py             # Todo database access
+│   ├── dependencies/
+│   │   └── auth_dependency.py       # get_current_user dependency
+│   ├── db/
+│   │   ├── db_models.py             # SQLAlchemy setup
+│   │   └── todo_models.py           # Todo model
+│   ├── core/
+│   │   └── config.py                # Configuration
+│   ├── schema/                      # Pydantic schemas
+│   ├── gen/                         # Generated protobuf files
+│   └── requirements.txt
+│
+├── ARCHITECTURE.md                  # Detailed architecture guide
+├── INTEGRATION.md                   # Setup and integration guide
+├── REFACTORING_SUMMARY.md          # Before/after comparison
+├── readme.md                        # This file
+└── docker-compose.yml              # Local development setup
+```
+
+## 🔐 Security Features
+
+### Password Security
+- **Argon2**: Memory-hard hashing (resistant to GPU attacks)
+- **Automatic salting**: Each password uniquely salted
+- **Verified with**: argon2-cffi library
+
+### Token Security
+- **JWT with expiration**:
+  - Access tokens: 15 minutes
+  - Refresh tokens: 7 days
+- **Token types**: Access vs Refresh (different purposes)
+- **HS256 signature**: HMAC-SHA256 verification
+- **User validation**: Token owner must still exist
+
+### Endpoint Protection
+- **All /todo/* endpoints** require valid access token
+- **Token mismatch**: Returns 401 Unauthorized
+- **Expired tokens**: Can refresh with refresh_token
+
+## 📝 API Endpoints
+
+### Authentication Routes
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/auth/register` | Register new user |
+| POST | `/auth/login` | Login and get tokens |
+| POST | `/auth/refresh` | Get new access token |
+
+### Todo Routes (Protected)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/todo/` | List user's todos |
+| GET | `/todo/{id}` | Get specific todo |
+| POST | `/todo/` | Create new todo |
+| PUT | `/todo/{id}` | Update todo |
+| DELETE | `/todo/{id}` | Delete todo |
+
+### Health Check
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | API health check |
+
+## 🧪 Testing
+
+### Interactive API Docs
+- **FastAPI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+### Test Complete Flow
+1. Register user → get user_id
+2. Login → get access_token + refresh_token
+3. Create todo → use access_token
+4. List todos → use access_token
+5. Refresh token → get new access_token
+
+See [INTEGRATION.md](INTEGRATION.md) for detailed test commands.
+
+## 🛠️ Configuration
+
+Both services use environment variables. See `.env` files:
+
+**Auth Service:**
+- `POSTGRES_*`: Database connection
+- `JWT_SECRET`: Token signing key (keep secret!)
+- `JWT_ALGORITHM`: Token algorithm (HS256)
+- `ACCESS_TOKEN_EXPIRES_MINUTES`: Access token TTL
+- `REFRESH_TOKEN_EXPIRES_DAYS`: Refresh token TTL
+
+**FastAPI Service:**
+- `POSTGRES_*`: Database connection
+- `AUTH_SERVICE_HOST`: Auth service hostname
+- `AUTH_SERVICE_PORT`: Auth service gRPC port
+- JWT settings (must match Auth Service!)
+
+## 📚 Documentation
+
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed architecture overview, data flows, security
+- **[INTEGRATION.md](INTEGRATION.md)** - Setup guide, API examples, troubleshooting
+- **[REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md)** - Before/after comparison, changes made
+
+## 🔄 Data Flow Example: User Login
+
+```
+1. POST /auth/login
+2. FastAPI receives request
+3. Calls AuthGrpcClient.login()
+4. gRPC sends LoginRequest to Auth service
+5. Auth service:
+   - Looks up user by email
+   - Verifies password (Argon2)
+   - Generates JWT tokens
+6. gRPC returns tokens
+7. FastAPI returns tokens to client
+```
+
+## 🐳 Docker Deployment
+
+```bash
+docker-compose up -d
+```
+
+This starts:
+- PostgreSQL (port 5432)
+- Auth Service (port 5501)
+- FastAPI Service (port 8000)
+
+## 💾 Database Schemas
+
+### Auth Service (users table)
+```sql
+CREATE TABLE users (
+  id UUID PRIMARY KEY,
+  username VARCHAR(255) UNIQUE NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+```
+
+### FastAPI Service (todos table)
+```sql
+CREATE TABLE todos (
+  id UUID PRIMARY KEY,
+  user_id UUID NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  completed BOOLEAN DEFAULT false,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+```
+
+## ⚡ Performance
+
+- **gRPC**: 10-100x faster than HTTP for inter-service calls
+- **Binary Protocol**: Smaller payloads than JSON
+- **Connection Pooling**: SQLAlchemy manages DB connections
+- **Stateless Services**: Scale horizontally without state
+
+## 🎓 Learning Outcomes
+
+This project demonstrates:
+
+✅ Microservices architecture patterns  
+✅ gRPC and Protocol Buffers  
+✅ JWT authentication and token management  
+✅ Password hashing best practices (Argon2)  
+✅ Repository pattern for data access  
+✅ Service layer for business logic  
+✅ Dependency injection in FastAPI  
+✅ Database per service pattern  
+✅ Clean code architecture  
+✅ Production-ready Python practices  
+
+## 🚦 Status Codes
+
+### Success
+- `200 OK` - Request successful
+- `201 Created` - Resource created
+
+### Client Error
+- `400 Bad Request` - Invalid input
+- `401 Unauthorized` - Invalid/missing token
+- `409 Conflict` - Email/username already exists
+
+### Server Error
+- `500 Internal Server Error` - Auth service unreachable
+
+## 🐛 Troubleshooting
+
+**Auth service won't start:**
+- Check PostgreSQL is running
+- Verify `POSTGRES_DB=auth_service` exists
+
+**Can't connect to Auth service:**
+- Verify Auth service is running on port 5501
+- Check `AUTH_SERVICE_HOST` and `AUTH_SERVICE_PORT` in FastAPI
+
+**Token verification fails:**
+- Verify `JWT_SECRET` is same in both services
+- Token may be expired (use refresh endpoint)
+
+See [INTEGRATION.md](INTEGRATION.md#-troubleshooting) for more troubleshooting.
+
+## 📦 Dependencies
+
+**Auth Service:**
+- grpcio, grpcio-tools: gRPC framework
+- sqlalchemy: ORM
+- psycopg2: PostgreSQL driver
+- python-jose: JWT handling
+- argon2-cffi: Password hashing
+- pydantic: Data validation
+
+**FastAPI Service:**
+- fastapi: Web framework
+- uvicorn: ASGI server
+- grpcio: gRPC client
+- sqlalchemy: ORM
+- psycopg2: PostgreSQL driver
+
+## 📄 License
+
+MIT
+
+## 🤝 Contributing
+
+This is a learning project. Feel free to fork and experiment!
+
+## 📞 Support
+
+- Check the docs: [ARCHITECTURE.md](ARCHITECTURE.md)
+- See examples: [INTEGRATION.md](INTEGRATION.md)
+- Review code: All services are well-commented
+
+---
+
+**Built as a production-style example of microservices architecture with Python, FastAPI, and gRPC.**
+
 ```
 
 ### Detailed Architecture Diagram

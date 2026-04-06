@@ -1,2 +1,3 @@
-from .auth_service import AuthDbService
-__all__ = ["AuthDbService"]
+from .auth_service import AuthService
+
+__all__ = ["AuthService"]
